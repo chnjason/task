@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>培优托管中心工作台-作业查询</title>
+
+<!-- Bootstrap & FontAwesome -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+    --primary-color: #0067c6;
+    --primary-color-hover: #005da6;
+    --bg-color: #f2f2f2;
+    --panel-bg-color: #ffffff;
+    --font-color: #333;
+    --border-color: #e0e0e0;
+    --shadow-md: 0 5px 12px rgba(0,0,0,0.1);
+    --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+}
+
+/* 页面布局 */
+body {
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    background-color: var(--bg-color);
+    color: var(--font-color);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+header {
+    background: linear-gradient(90deg, var(--primary-color) 0%, #0078d4 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+}
+header h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* 查询面板 */
+.query-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 1rem;
+}
+.query-card {
+    background-color: var(--panel-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: var(--shadow-md);
+    padding: 2rem;
+    width: 100%;
+    max-width: 600px;
+}
+.query-card h2 {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--primary-color);
+}
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+.btn-primary:hover {
+    background-color: var(--primary-color-hover);
+    border-color: var(--primary-color-hover);
+}
+
+/* 查询结果展示区 */
+#resultContainer {
+    margin-top: 2rem;
+}
+
+/* 深色作业卡片样式 */
+.dark-card {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #e0e0e0;
+    box-shadow: var(--shadow-lg);
+    margin-bottom: 1rem;
+}
+.dark-card-header {
+    background-color: #333;
+    color: #f1f1f1;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    border-bottom: 1px solid #444;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+.dark-card-body {
+    padding: 1rem 1.25rem;
+}
+.dark-card .subject-title {
+    color: #f5e6b8; /* 米黄色 */
+    font-weight: bold;
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.dark-card .subject-block {
+    margin-bottom: 1.25rem; /* 增加科目间距 */
+}
+.dark-card .subject-block:last-child {
+    margin-bottom: 0;
+}
+.dark-card .homework-item {
+    display: flex;
+    align-items: center; /* 垂直居中对齐 */
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+
+/* 状态标签样式（固定宽度4汉字） */
+.status-label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 5em; /* 固定宽度为4个汉字 */
+    min-width: 5em;
+    height: 1.8em;
+    text-align: center;
+    white-space: nowrap; /* 禁止换行 */
+    padding: 0.15rem 0;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+.status-red { background-color: #d83b01; color: #fff; }
+.status-green { background-color: #107c10; color: #fff; }
+.status-yellow { background-color: #ffb900; color: #1e1e1e; }
+
+@media (max-width: 768px) {
+    .query-card { padding: 1.5rem; }
+}
+</style>
+</head>
+
+<body>
+<header>
+    <h1><i class="fas fa-search"></i> 培优托管中心</h1>
+</header>
+
+<main class="query-container">
+    <div class="query-card">
+        <h2>家庭作业进度查询</h2>
+        <div class="mb-3">
+            <label for="studentName" class="form-label">学生姓名</label>
+            <input type="text" id="studentName" class="form-control" placeholder="请输入学生姓名">
+        </div>
+        <div class="mb-3">
+            <label for="studentGrade" class="form-label">年级</label>
+            <select id="studentGrade" class="form-select">
+                <option value="">请选择年级</option>
+                <option>一年级</option><option>二年级</option><option>三年级</option>
+                <option>四年级</option><option>五年级</option><option>六年级</option>
+                <option>七年级</option><option>八年级</option><option>九年级</option>
+            </select>
+        </div>
+        <div class="mb-4">
+            <label for="queryDate" class="form-label">日期</label>
+            <input type="date" id="queryDate" class="form-control">
+        </div>
+        <button id="queryBtn" class="btn btn-primary w-100 mb-3"><i class="fas fa-search"></i> 查询作业</button>
+        <div id="resultContainer"></div>
+    </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    // 初始化日期为北京时间
+    const dateInput = document.getElementById('queryDate');
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('fr-CA', {
+        timeZone: 'Asia/Shanghai',
+        year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    dateInput.value = formatter.format(now);
+
+    // 初始化 Supabase
+    const supabase = window.supabase.createClient(
+        'https://cqahsqqvtzhudvznuoln.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxYWhzcXF2dHpodWR2em51b2xuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4MDM4OTcsImV4cCI6MjA3NTM3OTg5N30.oORdnAqIWEZxe1xssuV6QaSCQObbHvBda_ECFp5POsI'
+    );
+
+    const resultContainer = document.getElementById('resultContainer');
+    const queryBtn = document.getElementById('queryBtn');
+
+    queryBtn.addEventListener('click', async () => {
+        const name = document.getElementById('studentName').value.trim();
+        const grade = document.getElementById('studentGrade').value.trim();
+        const date = document.getElementById('queryDate').value;
+
+        if (!name || !grade || !date) {
+            resultContainer.innerHTML = '<div class="text-danger text-center fw-bold">请填写完整查询条件。</div>';
+            return;
+        }
+
+        resultContainer.innerHTML = '<div class="text-center text-muted">正在查询，请稍候...</div>';
+
+        try {
+            const { data, error } = await supabase
+                .from('homework_platform')
+                .select('data')
+                .eq('id', 1)
+                .single();
+
+            if (error) throw error;
+            if (!data || !data.data) {
+                resultContainer.innerHTML = '<div class="text-center text-danger">未找到数据，请联系管理员。</div>';
+                return;
+            }
+
+            const allData = data.data;
+            const { students, subjects, homeworks } = allData;
+
+            const student = students.find(s => s.name === name && s.grade === grade);
+            if (!student) {
+                resultContainer.innerHTML = '<div class="text-center text-danger">未找到该学生信息，请检查姓名与年级是否准确。</div>';
+                return;
+            }
+
+            const matchedHomeworks = homeworks.filter(h => h.studentId === student.id && h.date === date);
+            if (matchedHomeworks.length === 0) {
+                resultContainer.innerHTML = '<div class="text-center text-muted">该日期暂无作业记录。</div>';
+                return;
+            }
+
+            let html = '';
+            const subjectMap = Object.fromEntries(subjects.map(s => [s.id, s.name]));
+            const grouped = {};
+            matchedHomeworks.forEach(h => {
+                const subjectName = subjectMap[h.subjectId] || '未指定科目';
+                if (!grouped[subjectName]) grouped[subjectName] = [];
+                grouped[subjectName].push(h);
+            });
+
+            html += `<div class="dark-card">
+                        <div class="dark-card-header">
+                            学生：${student.name}（${student.grade}） — ${date}
+                        </div>
+                        <div class="dark-card-body">`;
+
+            for (const subject in grouped) {
+                html += `<div class="subject-block">
+                            <div class="subject-title">${subject}</div>`;
+                grouped[subject].forEach(h => {
+                    let statusClass = 'status-yellow';
+                    if (h.status === '已完成') statusClass = 'status-green';
+                    else if (h.status === '未完成') statusClass = 'status-red';
+                    html += `<div class="homework-item">
+                                <span class="status-label ${statusClass}">${h.status}</span>
+                                <div>${h.task}</div>
+                             </div>`;
+                });
+                html += `</div>`;
+            }
+
+            html += `</div></div>`;
+            resultContainer.innerHTML = html;
+
+        } catch (err) {
+            console.error(err);
+            resultContainer.innerHTML = '<div class="text-center text-danger">查询出错，请稍后再试。</div>';
+        }
+    });
+});
+</script>
+
+</body>
+</html>
